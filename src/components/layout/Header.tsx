@@ -3,6 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useData } from '@/context/DataContext';
 import { Search, Bell, Moon, Sun, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SyncStatusIndicator } from './SyncStatusIndicator';
 
 interface HeaderProps {
   sidebarCollapsed: boolean;
@@ -10,7 +11,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ sidebarCollapsed, onMenuClick }) => {
-  const { user } = useAuth();
+  const { user, localUser, isCloudMode } = useAuth();
   const { settings, updateSettings } = useData();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -27,6 +28,10 @@ export const Header: React.FC<HeaderProps> = ({ sidebarCollapsed, onMenuClick })
     year: 'numeric',
   });
 
+  const displayName = isCloudMode ? (user?.fullName || user?.email) : localUser?.username;
+  const displayCompany = isCloudMode ? user?.companyName : localUser?.companyName;
+  const displayRole = isCloudMode ? user?.role : localUser?.role;
+
   return (
     <header
       className={cn(
@@ -35,7 +40,6 @@ export const Header: React.FC<HeaderProps> = ({ sidebarCollapsed, onMenuClick })
       )}
     >
       <div className="h-full px-6 flex items-center justify-between">
-        {/* Left Section */}
         <div className="flex items-center gap-4">
           <button
             onClick={onMenuClick}
@@ -45,12 +49,11 @@ export const Header: React.FC<HeaderProps> = ({ sidebarCollapsed, onMenuClick })
           </button>
           
           <div>
-            <h2 className="font-semibold text-foreground">{user?.companyName || 'Hello9 FINEXA™'}</h2>
+            <h2 className="font-semibold text-foreground">{displayCompany || 'Hello9 FINEXA™'}</h2>
             <p className="text-xs text-muted-foreground">{currentDate}</p>
           </div>
         </div>
 
-        {/* Search */}
         <div className="hidden md:flex flex-1 max-w-md mx-8">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
@@ -64,8 +67,9 @@ export const Header: React.FC<HeaderProps> = ({ sidebarCollapsed, onMenuClick })
           </div>
         </div>
 
-        {/* Right Section */}
         <div className="flex items-center gap-2">
+          <SyncStatusIndicator />
+          
           <button
             onClick={toggleDarkMode}
             className="p-2.5 rounded-lg hover:bg-muted transition-colors"
@@ -81,13 +85,13 @@ export const Header: React.FC<HeaderProps> = ({ sidebarCollapsed, onMenuClick })
 
           <div className="hidden sm:flex items-center gap-3 ml-3 pl-3 border-l border-border">
             <div className="text-right">
-              <p className="text-sm font-medium">{user?.username}</p>
+              <p className="text-sm font-medium">{displayName}</p>
               <span className={cn(
                 'badge text-xs',
-                user?.role === 'admin' ? 'badge-info' : 
-                user?.role === 'accountant' ? 'badge-success' : 'badge-warning'
+                displayRole === 'admin' ? 'badge-info' : 
+                displayRole === 'accountant' ? 'badge-success' : 'badge-warning'
               )}>
-                {user?.role}
+                {displayRole}
               </span>
             </div>
           </div>
