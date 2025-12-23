@@ -1,21 +1,6 @@
 export type UserRole = 'admin' | 'accountant' | 'viewer';
 
-export type SyncStatus = 'offline' | 'syncing' | 'online' | 'error';
-export type StorageMode = 'offline' | 'online' | 'hybrid';
-
 export interface User {
-  id: string;
-  email: string;
-  fullName?: string;
-  role: UserRole;
-  companyName?: string;
-  gstState?: string;
-  avatarUrl?: string;
-  createdAt: string;
-  lastLogin?: string;
-}
-
-export interface LocalUser {
   id: string;
   username: string;
   passwordHash: string;
@@ -28,49 +13,38 @@ export interface LocalUser {
 
 export interface Customer {
   id: string;
-  user_id?: string;
   name: string;
   email?: string;
   phone?: string;
   gstin?: string;
   address?: string;
-  city?: string;
   state: string;
-  pin_code?: string;
   createdAt: string;
-  synced_at?: string;
 }
 
 export interface Supplier {
   id: string;
-  user_id?: string;
   name: string;
   email?: string;
   phone?: string;
   gstin?: string;
   address?: string;
-  city?: string;
   state: string;
-  pin_code?: string;
   createdAt: string;
-  synced_at?: string;
 }
 
 export interface Product {
   id: string;
-  user_id?: string;
   name: string;
   sku?: string;
-  hsn_code?: string;
   description?: string;
   price: number;
   cost: number;
   quantity: number;
   unit: string;
-  gst_rate: number;
-  low_stock_alert?: number;
+  hsnCode?: string;
+  gstRate: number;
   createdAt: string;
-  synced_at?: string;
 }
 
 export interface InvoiceItem {
@@ -87,7 +61,6 @@ export interface InvoiceItem {
 
 export interface Invoice {
   id: string;
-  user_id?: string;
   invoiceNumber: string;
   customerId: string;
   customerName: string;
@@ -103,12 +76,10 @@ export interface Invoice {
   status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
   notes?: string;
   createdAt: string;
-  synced_at?: string;
 }
 
 export interface Purchase {
   id: string;
-  user_id?: string;
   purchaseNumber: string;
   supplierId: string;
   supplierName: string;
@@ -122,12 +93,10 @@ export interface Purchase {
   status: 'pending' | 'received' | 'cancelled';
   notes?: string;
   createdAt: string;
-  synced_at?: string;
 }
 
 export interface LedgerEntry {
   id: string;
-  user_id?: string;
   date: string;
   type: 'income' | 'expense';
   category: string;
@@ -135,23 +104,17 @@ export interface LedgerEntry {
   amount: number;
   reference?: string;
   createdAt: string;
-  synced_at?: string;
 }
 
 export interface BankTransaction {
   id: string;
-  user_id?: string;
   date: string;
   type: 'deposit' | 'withdrawal' | 'transfer';
   description: string;
   amount: number;
-  balance?: number;
-  bank_name?: string;
-  account_number?: string;
+  balance: number;
   reference?: string;
-  reconciled?: boolean;
   createdAt: string;
-  synced_at?: string;
 }
 
 export interface DashboardStats {
@@ -176,15 +139,4 @@ export interface AppSettings {
   purchasePrefix: string;
   currency: string;
   fiscalYearStart: string;
-  cloudSyncEnabled: boolean;
-  storageMode: StorageMode;
-  autoSync: boolean;
-  syncInterval: number;
-}
-
-export interface SyncState {
-  status: SyncStatus;
-  lastSynced?: string;
-  pendingChanges: number;
-  error?: string;
 }
