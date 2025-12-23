@@ -1,66 +1,208 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, LogIn, UserPlus, Cloud, HardDrive, ArrowLeft } from 'lucide-react';
 import { indianStates } from '@/lib/storage';
 import { toast } from 'sonner';
 import { UserRole } from '@/types';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login, register } = useAuth();
+  const { 
+    login, 
+    loginLocal, 
+    register, 
+    registerLocal, 
+    isAuthenticated, 
+    isCloudMode,
+    switchToCloudMode,
+    switchToLocalMode,
+    loading 
+  } = useAuth();
+  
   const [isRegister, setIsRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [showModeSelection, setShowModeSelection] = useState(true);
 
   const [formData, setFormData] = useState({
+    email: '',
     username: '',
     password: '',
     confirmPassword: '',
+    fullName: '',
     companyName: '',
     gstState: '',
     role: 'admin' as UserRole,
   });
 
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, loading, navigate]);
+
+  const handleModeSelect = (mode: 'cloud' | 'local') => {
+    if (mode === 'cloud') {
+      switchToCloudMode();
+    } else {
+      switchToLocalMode();
+    }
+    setShowModeSelection(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setSubmitting(true);
 
-    if (isRegister) {
-      if (formData.password !== formData.confirmPassword) {
-        toast.error('Passwords do not match');
-        setLoading(false);
-        return;
-      }
+    try {
+      if (isCloudMode) {
+        // Cloud mode
+        if (isRegister) {
+          if (formData.password !== formData.confirmPassword) {
+            toast.error('Passwords do not match');
+            return;
+          }
 
-      const result = register({
-        username: formData.username,
-        password: formData.password,
-        role: formData.role,
-        companyName: formData.companyName,
-        gstState: formData.gstState,
-      });
+          if (formData.password.length < 6) {
+            toast.error('Password must be at least 6 characters');
+            return;
+          }
 
-      if (result.success) {
-        toast.success('Account created successfully! Please login.');
-        setIsRegister(false);
-        setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+          const result = await register({
+            email: formData.email,
+            password: formData.password,
+            fullName: formData.fullName,
+            companyName: formData.companyName,
+            gstState: formData.gstState,
+            role: formData.role,
+          });
+
+          if (result.success) {
+            toast.success('Account created! You can now login.');
+            setIsRegister(false);
+            setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+          } else {
+            toast.error(result.error || 'Registration failed');
+          }
+        } else {
+          const result = await login(formData.email, formData.password);
+          
+          if (result.success) {
+            toast.success('Welcome back!');
+            navigate('/dashboard');
+          } else {
+            toast.error(result.error || 'Login failed');
+          }
+        }
       } else {
-        toast.error(result.error || 'Registration failed');
+        // Local mode
+        if (isRegister) {
+          if (formData.password !== formData.confirmPassword) {
+            toast.error('Passwords do not match');
+            return;
+          }
+
+          const result = registerLocal({
+            username: formData.username,
+            password: formData.password,
+            role: formData.role,
+            companyName: formData.companyName,
+            gstState: formData.gstState,
+          });
+
+          if (result.success) {
+            toast.success('Account created successfully! Please login.');
+            setIsRegister(false);
+            setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+          } else {
+            toast.error(result.error || 'Registration failed');
+          }
+        } else {
+          const result = loginLocal(formData.username, formData.password);
+          
+          if (result.success) {
+            toast.success('Welcome back!');
+            navigate('/dashboard');
+          } else {
+            toast.error(result.error || 'Login failed');
+          }
+        }
       }
-    } else {
-      const result = login(formData.username, formData.password);
-      
-      if (result.success) {
-        toast.success('Welcome back!');
-        navigate('/dashboard');
-      } else {
-        toast.error(result.error || 'Login failed');
-      }
+    } finally {
+      setSubmitting(false);
     }
-
-    setLoading(false);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Mode Selection Screen
+  if (showModeSelection) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8 bg-background">
+        <div className="w-full max-w-2xl">
+          <div className="text-center mb-12">
+            <div className="w-20 h-20 rounded-2xl gradient-bg flex items-center justify-center mx-auto mb-6 floating-logo">
+              <span className="text-3xl font-bold text-primary-foreground">H9</span>
+            </div>
+            <h1 className="text-4xl font-bold gradient-text mb-2">Hello9 FINEXA™</h1>
+            <p className="text-muted-foreground">Smart Accounting • GST • Offline + Cloud</p>
+          </div>
+
+          <h2 className="text-2xl font-semibold text-center mb-8">Choose Your Mode</h2>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <button
+              onClick={() => handleModeSelect('local')}
+              className="p-8 rounded-2xl border-2 border-border hover:border-primary transition-all duration-300 bg-card hover:shadow-lg group"
+            >
+              <HardDrive className="w-16 h-16 mx-auto mb-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              <h3 className="text-xl font-semibold mb-2">Offline Mode</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                100% offline. Data stored locally on this device only.
+                No internet required.
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                <span className="px-3 py-1 bg-muted rounded-full text-xs">No Internet</span>
+                <span className="px-3 py-1 bg-muted rounded-full text-xs">Local Storage</span>
+                <span className="px-3 py-1 bg-muted rounded-full text-xs">Single Device</span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => handleModeSelect('cloud')}
+              className="p-8 rounded-2xl border-2 border-border hover:border-primary transition-all duration-300 bg-card hover:shadow-lg group relative overflow-hidden"
+            >
+              <div className="absolute top-2 right-2 px-2 py-1 bg-primary text-primary-foreground text-xs rounded-full">
+                Recommended
+              </div>
+              <Cloud className="w-16 h-16 mx-auto mb-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              <h3 className="text-xl font-semibold mb-2">Cloud Mode</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Secure cloud sync. Access from any device.
+                Automatic backups included.
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                <span className="px-3 py-1 bg-muted rounded-full text-xs">Multi-Device</span>
+                <span className="px-3 py-1 bg-muted rounded-full text-xs">Cloud Backup</span>
+                <span className="px-3 py-1 bg-muted rounded-full text-xs">Secure</span>
+              </div>
+            </button>
+          </div>
+
+          <p className="text-center text-xs text-muted-foreground mt-8">
+            Made in India 🇮🇳 • Developed by Dhairya Patel
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">
@@ -74,12 +216,12 @@ export const LoginPage: React.FC = () => {
           </div>
           
           <h1 className="text-4xl font-bold mb-4 text-center">Hello9 FINEXA™</h1>
-          <p className="text-xl opacity-90 mb-2">Smart Accounting • GST • Offline-First</p>
+          <p className="text-xl opacity-90 mb-2">Smart Accounting • GST • {isCloudMode ? 'Cloud' : 'Offline'}</p>
           <p className="text-sm opacity-70 mb-12">Made in India 🇮🇳</p>
           
           <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
             {[
-              '100% Offline',
+              isCloudMode ? 'Cloud Sync' : '100% Offline',
               'Multi-User',
               'GST Compliant',
               'Secure Data',
@@ -95,12 +237,33 @@ export const LoginPage: React.FC = () => {
       {/* Right Panel - Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
+          {/* Back button */}
+          <button
+            onClick={() => setShowModeSelection(true)}
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
+          >
+            <ArrowLeft size={16} />
+            <span className="text-sm">Change mode</span>
+          </button>
+
           {/* Mobile Logo */}
           <div className="lg:hidden flex flex-col items-center mb-8">
             <div className="w-16 h-16 rounded-xl gradient-bg flex items-center justify-center mb-4 floating-logo">
               <span className="text-2xl font-bold text-primary-foreground">H9</span>
             </div>
             <h1 className="text-2xl font-bold gradient-text">Hello9 FINEXA™</h1>
+          </div>
+
+          {/* Mode Badge */}
+          <div className="flex justify-center mb-6">
+            <span className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 ${
+              isCloudMode 
+                ? 'bg-primary/10 text-primary' 
+                : 'bg-muted text-muted-foreground'
+            }`}>
+              {isCloudMode ? <Cloud size={16} /> : <HardDrive size={16} />}
+              {isCloudMode ? 'Cloud Mode' : 'Offline Mode'}
+            </span>
           </div>
 
           <div className="text-center mb-8">
@@ -115,20 +278,50 @@ export const LoginPage: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium mb-2">Username</label>
-              <input
-                type="text"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                className="input-field"
-                placeholder="Enter your username"
-                required
-              />
-            </div>
+            {isCloudMode ? (
+              // Cloud mode - Email based
+              <div>
+                <label className="block text-sm font-medium mb-2">Email</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="input-field"
+                  placeholder="you@company.com"
+                  required
+                />
+              </div>
+            ) : (
+              // Local mode - Username based
+              <div>
+                <label className="block text-sm font-medium mb-2">Username</label>
+                <input
+                  type="text"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  className="input-field"
+                  placeholder="Enter your username"
+                  required
+                />
+              </div>
+            )}
 
             {isRegister && (
               <>
+                {isCloudMode && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Full Name</label>
+                    <input
+                      type="text"
+                      value={formData.fullName}
+                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                      className="input-field"
+                      placeholder="Your full name"
+                      required
+                    />
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium mb-2">Company Name</label>
                   <input
@@ -181,7 +374,7 @@ export const LoginPage: React.FC = () => {
                   className="input-field pr-12"
                   placeholder="••••••••"
                   required
-                  minLength={4}
+                  minLength={isCloudMode ? 6 : 4}
                 />
                 <button
                   type="button"
@@ -209,10 +402,10 @@ export const LoginPage: React.FC = () => {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={submitting}
               className="btn-primary w-full flex items-center justify-center gap-2"
             >
-              {loading ? (
+              {submitting ? (
                 <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
               ) : isRegister ? (
                 <>
@@ -242,7 +435,9 @@ export const LoginPage: React.FC = () => {
           <p className="mt-8 text-center text-xs text-muted-foreground">
             By continuing, you agree to our Privacy Policy.
             <br />
-            All data is stored locally on your device.
+            {isCloudMode 
+              ? 'Data is securely stored in the cloud.'
+              : 'All data is stored locally on your device.'}
           </p>
         </div>
       </div>
